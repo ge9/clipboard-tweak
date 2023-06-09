@@ -37,7 +37,6 @@ class Q_col : Form
 
     public const int KEYEVENTF_KEYUP = 0x0002;
 
-
     const int my_hotkey_id = 0x0010;//arbitrary value between 0x0000 and 0xbfff
     (int, int, int, int)[] hotkey_ids = { (1, 2, 3 , 7), (4, 5, 6, 8) };
     const int my_hotkey_id_zot = 0x0012;//arbitrary value between 0x0000 and 0xbfff
@@ -60,11 +59,17 @@ class Q_col : Form
     private System.Windows.Forms.IDataObject last_cb = new DataObject();
     private System.Windows.Forms.IDataObject[] spare_cbs = { new DataObject(), new DataObject() };
     private bool window_init_done = false;
+
+    
+    //use as multiset (bool is used like "unit" type)
+    static Dictionary<string, bool> unsupported_formats = new Dictionary<string, bool>(){
+    {"Object Descriptor", true},
+    };
+
     [STAThread]
     public static void Main(string[] args)
     {
         System.Windows.Forms.Application.Run(new Q_col());
-
     }
     public Q_col()
     {
@@ -109,10 +114,10 @@ class Q_col : Form
         cb = new DataObject();
         foreach (string fmt in cb_raw.GetFormats(false))
         {
-            Console.WriteLine(fmt);
-            cb.SetData(fmt, cb_raw.GetData(fmt));
+
+            if (!unsupported_formats.ContainsKey(fmt)) { Console.WriteLine(fmt); cb.SetData(fmt, cb_raw.GetData(fmt)); }
         }
-        Console.WriteLine("stored" + cb.GetData(DataFormats.UnicodeText));
+        Console.WriteLine("stored!!");// + cb.GetData(DataFormats.UnicodeText));
     }
     protected override void WndProc(ref Message message)
     {
@@ -147,7 +152,7 @@ class Q_col : Form
 
                 //これがbackupより後だと、既にstoreしたものを復元後にもう一度storeすることになる可能性があるため、前にする
                 clip_detect = CBSTT_NOOP;
-                if (!clip_saved) { backupCBto(ref last_cb); clip_saved = true; }
+                if (!clip_saved) { backupCBto(ref last_cb); Console.WriteLine("backup done!"); clip_saved = true; }
                 //メイン部分
                 if (((int)message.WParam) == hotkey_ids[0].Item1 || ((int)message.WParam) == hotkey_ids[0].Item2)
                 {
@@ -157,6 +162,7 @@ class Q_col : Form
                     SendKeys.Flush();
                     Thread.Sleep(100);
                     backupCBto(ref spare_cbs[0]);
+                    Console.WriteLine("copy done!");
                     System.Threading.Tasks.Task.Delay(100).ContinueWith(
                      _ => {
                          clip_detect = CBSTT_RESTORE_LAST;
@@ -176,7 +182,7 @@ class Q_col : Form
                     string img = Clipboard.GetText(TextDataFormat.UnicodeText);
                     if (img != null)
                     {
-                        Console.WriteLine(img);
+                        //Console.WriteLine(img);
                         clip_detect = CBSTT_WAIT_SET_AND_CTRLV;
                         Clipboard.SetText(AddToUnicode(img), TextDataFormat.UnicodeText);
                     }
@@ -227,7 +233,9 @@ class Q_col : Form
                         break;
                     case CBSTT_RESTORE_LAST:
                         clip_detect = CBSTT_FINALIZE;
+                        Console.WriteLine("Restoring");
                         Clipboard.SetDataObject(last_cb, true);
+                        Console.WriteLine("Restore Done");
                         break;
                     case CBSTT_FINALIZE:
                         clip_detect = CBSTT_NOOP;
