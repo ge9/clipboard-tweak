@@ -11,3 +11,6 @@
   - これを https://github.com/ge9/trivial-font と併用することにより、表示幅を大きく減らした状態でテキストデータを保持することができ、疑似的な折りたたみ機能が実現できる。
 - Pを押したとき
   - 選択文字列を引数としてzot.bat（exeのカレントディレクトリから見えるパスにある必要がある）を起動する。該当引用キーの論文をZoteroで開くことを想定。
+
+# Dependencies
+You need [.NET desktop runtime 6.0](https://dotnet.microsoft.com/ja-jp/download/dotnet/6.0).
