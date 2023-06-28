@@ -12,5 +12,6 @@
 - Pを押したとき
   - 選択文字列を引数としてzot.bat（exeのカレントディレクトリから見えるパスにある必要がある）を起動する。該当引用キーの論文をZoteroで開くことを想定。
 
-# Dependencies
-You need [.NET desktop runtime 6.0](https://dotnet.microsoft.com/ja-jp/download/dotnet/6.0).
+# 動作要件
+`-x86`と`-x64`は.NET 6向けにビルドされていて、ランタイムのインストールが必要。
+`-dotnet462`と`-dotnet35`は古い.NET Framework（それぞれ4.6.2と3.5）向けにビルドされている。前者はWindows10以降や更新を適用しているWindows8/8.1ならランタイムを入れなくても動作するはず。後者はWindows7でもデフォルトで動作するはずだが、コピー/ペースト操作でフォントが維持されない場合があるなどの不具合が確認されている。
