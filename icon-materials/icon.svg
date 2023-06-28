@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="32mm"
+   height="32mm"
+   viewBox="0 0 32 32"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   sodipodi:docname="icon.svg"
+   inkscape:export-filename="icon.png"
+   inkscape:export-xdpi="25.4"
+   inkscape:export-ydpi="25.4"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="1.7710157"
+     inkscape:cx="156.40742"
+     inkscape:cy="206.09642"
+     inkscape:window-width="1652"
+     inkscape:window-height="1226"
+     inkscape:window-x="4882"
+     inkscape:window-y="361"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       transform="matrix(0.06320803,0,0,0.06320803,-36.525873,-16.488927)"
+       id="g436">
+      <path
+         d="M 752,336.667 C 752,314.76 769.76,297 791.667,297 H 950.333 C 972.24,297 990,314.76 990,336.667 V 557.333 C 990,579.24 972.24,597 950.333,597 H 791.667 C 769.76,597 752,579.24 752,557.333 Z"
+         stroke="#172c51"
+         stroke-width="20"
+         stroke-miterlimit="8"
+         fill="#fff2cc"
+         fill-rule="evenodd"
+         id="path428" />
+      <path
+         d="M 800,384.667 C 800,362.76 817.76,345 839.667,345 h 158.666 c 21.907,0 39.667,17.76 39.667,39.667 V 605.333 C 1038,627.24 1020.24,645 998.333,645 H 839.667 C 817.76,645 800,627.24 800,605.333 Z"
+         stroke="#172c51"
+         stroke-width="20"
+         stroke-miterlimit="8"
+         fill="#fff2cc"
+         fill-rule="evenodd"
+         id="path430" />
+      <path
+         d="M 624,422.501 C 624,400.685 641.685,383 663.501,383 H 821.499 C 843.315,383 861,400.685 861,422.501 V 643.499 C 861,665.315 843.315,683 821.499,683 H 663.501 C 641.685,683 624,665.315 624,643.499 Z"
+         stroke="#172c51"
+         stroke-width="20"
+         stroke-miterlimit="8"
+         fill="#fff2cc"
+         fill-rule="evenodd"
+         id="path432" />
+      <path
+         d="M 672,470.501 C 672,448.685 689.685,431 711.501,431 H 869.499 C 891.315,431 909,448.685 909,470.501 V 691.499 C 909,713.315 891.315,731 869.499,731 H 711.501 C 689.685,731 672,713.315 672,691.499 Z"
+         stroke="#172c51"
+         stroke-width="20"
+         stroke-miterlimit="8"
+         fill="#fff2cc"
+         fill-rule="evenodd"
+         id="path434" />
+    </g>
+  </g>
+</svg>
