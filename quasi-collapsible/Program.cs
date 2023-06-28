@@ -1,10 +1,19 @@
 ﻿using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using System.Windows.Input;
+using System.Windows.Interop;
 
-class Q_col : Form
+using MessageBox = System.Windows.MessageBox;
+using IDataObject = System.Windows.Forms.IDataObject;
+using DataObject = System.Windows.Forms.DataObject;
+using DataFormats = System.Windows.Forms.DataFormats;
+using Clipboard = System.Windows.Forms.Clipboard;
+using TextDataFormat = System.Windows.Forms.TextDataFormat;
+
+class Q_col : System.Windows.Window
 {
     const int MOD_ALT = 0x0001;
     const int MOD_CONTROL = 0x0002;
@@ -32,14 +41,81 @@ class Q_col : Form
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    //[DllImport("user32.dll")]
+    //public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+
+    //public const int KEYEVENTF_KEYUP = 0x0002;
+
     [DllImport("user32.dll")]
-    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    static extern uint SendInput(uint nInputs, ref INPUT pInputs, int cbSize);
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT
+    {
+        public uint type;
+        public INPUTUNION inputUnion;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HARDWAREINPUT
+    {
+        public int uMsg;
+        public short wParamL;
+        public short wParamH;
+    }
 
-    public const int KEYEVENTF_KEYUP = 0x0002;
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
 
-    const int my_hotkey_id = 0x0010;//arbitrary value between 0x0000 and 0xbfff
-    (int, int, int, int)[] hotkey_ids = { (1, 2, 3 , 7), (4, 5, 6, 8) };
-    const int my_hotkey_id_zot = 0x0012;//arbitrary value between 0x0000 and 0xbfff
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION
+    {
+        [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+    const uint INPUT_KEYBOARD = 1;
+    const uint KEYEVENTF_KEYUP = 0x0002;
+    const ushort VK_SHIFT = 0x10;
+    const ushort VK_CONTROL = 0x11;
+    const ushort VK_MENU = 0x12;
+    const ushort VK_C = 0x43;
+    const ushort VK_P = 0x50;
+    const ushort VK_V = 0x56;
+    const ushort VK_X = 0x58;
+    const ushort VK_Y = 0x59;
+    const ushort VK_Z = 0x5A;
+    const ushort VK_LSHIFT = 0xA0;
+    const ushort VK_RSHIFT = 0xA1;
+    const ushort VK_LCONTROL = 0xA2;
+    const ushort VK_RCONTROL = 0xA3;
+    const ushort VK_LMENU = 0xA4;
+    const ushort VK_RMENU = 0xA5;
+
+
+
+    const int my_hotkey_id = 0x0030;//arbitrary value between 0x0000 and 0xbfff
+    (int, int, int, int)[] hotkey_ids = { (1, 2, 3, 7), (4, 5, 6, 8) };
+    const int my_hotkey_id_zot = 0x0032;//arbitrary value between 0x0000 and 0xbfff
 
     //0: default status; do detecting
     //1: do nothing
@@ -56,8 +132,8 @@ class Q_col : Form
     private int clip_detect = CBSTT_DEFAULT;
     private bool clip_saved = false;
     private IntPtr myHwnd = (IntPtr)0;
-    private System.Windows.Forms.IDataObject last_cb = new DataObject();
-    private System.Windows.Forms.IDataObject[] spare_cbs = { new DataObject(), new DataObject() };
+    private IDataObject last_cb = new DataObject();
+    private IDataObject[] spare_cbs = { new DataObject(), new DataObject() };
     private bool window_init_done = false;
 
     
@@ -69,97 +145,153 @@ class Q_col : Form
     [STAThread]
     public static void Main(string[] args)
     {
-        System.Windows.Forms.Application.Run(new Q_col());
+        (new System.Windows.Application()).Run(new Q_col());
+    }
+    private void CenterToScreen()
+    {
+        double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
+        double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+        double windowWidth = this.Width;
+        double windowHeight = this.Height;
+        this.Left = (screenWidth / 2) - (windowWidth / 2);
+        this.Top = (screenHeight / 2) - (windowHeight / 2);
     }
     public Q_col()
     {
-        this.Visible = false;
-        this.WindowState = FormWindowState.Minimized;
+        var helper = new System.Windows.Interop.WindowInteropHelper(this);
+        helper.EnsureHandle();
+        myHwnd = helper.Handle;
+        this.WindowStyle = System.Windows.WindowStyle.None; // 等価するものを選ぶ
+        this.WindowState = System.Windows.WindowState.Minimized;
         this.ShowInTaskbar = false;
-        this.TopMost = true;
-        this.Size = new Size(800, 800);
+        this.Topmost = true;
+        this.Width = 800; // WPFではウィンドウのSizeはWidthとHeightで設定します
+        this.Height = 800;
         this.CenterToScreen();
-        AddClipboardFormatListener(this.Handle);
-        myHwnd = Handle;
-        if (RegisterHotKey(this.Handle, my_hotkey_id, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.Y) == 0)
+
+        this.Loaded += async (s, e) =>
         {
-            MessageBox.Show("the hotkey is already in use");
+            await Task.Delay(100);
+            this.Dispatcher.Invoke(() =>
+            {
+                ShowWindow(myHwnd, SW_HIDE);
+            });
+            var hwndSource = HwndSource.FromHwnd(myHwnd);
+            if (hwndSource != null)
+            {
+                hwndSource.AddHook(WndProcMy);
+            }
+        };
+        //this.CenterWindow();
+        //this.Visible = false;
+        //this.WindowState = FormWindowState.Minimized;
+        //this.ShowInTaskbar = false;
+        //this.TopMost = true;
+        //this.Size = new Size(800, 800);
+        AddClipboardFormatListener(myHwnd);
+        if (RegisterHotKey(myHwnd, my_hotkey_id, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)VK_Y) == 0)
+        {
+            MessageBox.Show("the hotkey is already in use5");
         }
         /*
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item4, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.Z) == 0)
+        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item4, MOD_ALT | MOD_SHIFT | MOD_CONTROL, VK_Z) == 0)
         {
             MessageBox.Show("the hotkey is already in use");
         }*/
-        if (RegisterHotKey(this.Handle, my_hotkey_id_zot, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.P) == 0)
+        if (RegisterHotKey(myHwnd, my_hotkey_id_zot, MOD_ALT | MOD_SHIFT | MOD_CONTROL, VK_P) == 0)
         {
-            MessageBox.Show("the hotkey is already in use");
+            MessageBox.Show("the hotkey is already in use4");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item1, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.C) == 0)
+        if (RegisterHotKey(myHwnd, hotkey_ids[0].Item1, MOD_ALT | MOD_SHIFT | MOD_CONTROL, VK_C) == 0)
         {
-            MessageBox.Show("the hotkey is already in use");
+            MessageBox.Show("the hotkey is already in use3");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item2, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.X) == 0)
+        if (RegisterHotKey(myHwnd, hotkey_ids[0].Item2, MOD_ALT | MOD_SHIFT | MOD_CONTROL, VK_X) == 0)
         {
-            MessageBox.Show("the hotkey is already in use");
+            MessageBox.Show("the hotkey is already in use2");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item3, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.V) == 0)
+        if (RegisterHotKey(myHwnd, hotkey_ids[0].Item3, MOD_ALT | MOD_SHIFT | MOD_CONTROL, VK_V) == 0)
         {
-            MessageBox.Show("the hotkey is already in use");
+            MessageBox.Show("the hotkey is already in use1");
         }
     }
-    static private void backupCBto(ref System.Windows.Forms.IDataObject cb)
+    static private void backupCBto(ref IDataObject cb)
     {
-        System.Windows.Forms.IDataObject cb_raw = Clipboard.GetDataObject();
+        IDataObject cb_raw = Clipboard.GetDataObject();
         //last_cb = cb_raw; return;
         cb = new DataObject();
         foreach (string fmt in cb_raw.GetFormats(false))
         {
-
             if (!unsupported_formats.ContainsKey(fmt)) { Console.WriteLine(fmt); cb.SetData(fmt, cb_raw.GetData(fmt)); }
         }
-        Console.WriteLine("stored!!");// + cb.GetData(DataFormats.UnicodeText));
+        Console.WriteLine("stored!!" + cb.GetData(DataFormats.UnicodeText));
     }
-    protected override void WndProc(ref Message message)
+    /*
+    private uint KeyPress(ushort key)
     {
-        base.WndProc(ref message);
-        switch (message.Msg)
+        var keyDown = new INPUT { type = INPUT_KEYBOARD };
+        keyDown.inputUnion.ki.wVk = key;
+        return SendInput(1, ref keyDown, Marshal.SizeOf(typeof(INPUT)));
+    }
+    */
+    private uint KeyRelease(ushort key)
+    {
+        var keyUp = new INPUT { type = INPUT_KEYBOARD };
+        keyUp.inputUnion.ki.wVk = key;
+        keyUp.inputUnion.ki.dwFlags = KEYEVENTF_KEYUP;
+        return SendInput(1, ref keyUp, Marshal.SizeOf(typeof(INPUT)));
+    }
+    /*
+    private void SimulateCtrlPlus(ushort MyKey)
+    {
+        Console.Write(Convert.ToString(Marshal.GetLastWin32Error()));
+        Console.Write(Convert.ToString(Marshal.GetLastWin32Error()));
+        Console.Write(Convert.ToString(Marshal.GetLastWin32Error()));
+        Console.Write(Convert.ToString(Marshal.GetLastWin32Error()));
+
+    }
+    */
+
+    private IntPtr WndProcMy(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        //base.WndProc(ref message);
+        switch (msg)
         {
             case WM_SHOWWINDOW:
                 this.CenterToScreen();
-                if ((int)message.WParam == 1)
+                if ((int)wParam == 1)
                 {
                     if (!window_init_done)
                     {//being shown
                         Console.WriteLine("Hiding");
                         window_init_done = true;
-                        ShowWindow(this.Handle, SW_HIDE);
+                        ShowWindow(myHwnd, SW_HIDE);
                     }
                 }
                 break;
             case WM_HOTKEY:
                 //waitForKeysReleased();
-                keybd_event(0x10, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                //keybd_event(0x11, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                KeyRelease(VK_SHIFT);
+                //KeyRelease(VK_CONTROL);
+                KeyRelease(VK_MENU);
 
-                keybd_event(0xA0, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event(0xA1, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                //keybd_event(0xA2, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                //keybd_event(0xA3, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event(0xA4, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event(0xA5, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
+                KeyRelease(VK_LSHIFT);
+                KeyRelease(VK_RSHIFT);
+                //KeyRelease(VK_LCONTROL);
+                //KeyRelease(VK_RCONTROL);
+                KeyRelease(VK_LMENU);
+                KeyRelease(VK_RMENU);
+                SendKeys.Flush();
 
                 //これがbackupより後だと、既にstoreしたものを復元後にもう一度storeすることになる可能性があるため、前にする
                 clip_detect = CBSTT_NOOP;
                 if (!clip_saved) { backupCBto(ref last_cb); Console.WriteLine("backup done!"); clip_saved = true; }
                 //メイン部分
-                if (((int)message.WParam) == hotkey_ids[0].Item1 || ((int)message.WParam) == hotkey_ids[0].Item2)
+                if (((int)wParam) == hotkey_ids[0].Item1 || ((int)wParam) == hotkey_ids[0].Item2)
                 {
-                    ShowWindow(this.Handle, SW_SHOWNA);
+                    ShowWindow(myHwnd, SW_SHOWNA);//SW_SHOWNAはWPFにないのでShowWindow必須？
                     clip_detect = CBSTT_NOOP;
-                    if (((int)message.WParam) == hotkey_ids[0].Item1) { SendKeys.SendWait("^c"); } else { SendKeys.SendWait("^x"); }
-                    SendKeys.Flush();
+                    if (((int)wParam) == hotkey_ids[0].Item1) { SendKeys.SendWait("^c"); } else { SendKeys.SendWait("^x"); }
                     Thread.Sleep(100);
                     backupCBto(ref spare_cbs[0]);
                     Console.WriteLine("copy done!");
@@ -169,15 +301,14 @@ class Q_col : Form
                          PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
                      });
                 }
-                else if (((int)message.WParam) == hotkey_ids[0].Item3)
+                else if (((int)wParam) == hotkey_ids[0].Item3)
                 {
                     clip_detect = CBSTT_WAIT_SET_AND_CTRLV;
                     Clipboard.SetDataObject(spare_cbs[0], true);
                 }
-                else if (((int)message.WParam) == my_hotkey_id)
+                else if (((int)wParam) == my_hotkey_id)
                 {
                     SendKeys.SendWait("^c");
-                    SendKeys.Flush();
                     Thread.Sleep(50);
                     string img = Clipboard.GetText(TextDataFormat.UnicodeText);
                     if (img != null)
@@ -192,10 +323,9 @@ class Q_col : Form
                         PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
                     }
                 }
-                else if (((int)message.WParam) == my_hotkey_id_zot)
+                else if (((int)wParam) == my_hotkey_id_zot)
                 {
                     SendKeys.SendWait("^c");
-                    SendKeys.Flush();
                     Thread.Sleep(50);
                     string img = Clipboard.GetText(TextDataFormat.UnicodeText);
                     if (img != null)
@@ -224,7 +354,6 @@ class Q_col : Form
                     case CBSTT_CTRLV_RESTORE:
                         clip_detect = CBSTT_NOOP;
                         SendKeys.SendWait("^v");
-                        SendKeys.Flush();
                         System.Threading.Tasks.Task.Delay(100).ContinueWith(
                          _ => {
                              clip_detect = CBSTT_RESTORE_LAST;
@@ -248,6 +377,7 @@ class Q_col : Form
                 }
                 break;
         }
+        return IntPtr.Zero;
     }
     static string AddToUnicode(string input)
     {
