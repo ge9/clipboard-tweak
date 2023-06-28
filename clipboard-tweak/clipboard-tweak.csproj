@@ -5,7 +5,10 @@
 	  <TargetFramework>net6.0-windows</TargetFramework>
 	  <UseWindowsForms>true</UseWindowsForms>
 	  <UseWPF>true</UseWPF>
-    <RootNamespace>quasi_collapsible</RootNamespace>
+	  <!--<PublishTrimmed>true</PublishTrimmed>
+	  <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+	  <_SuppressWpfTrimError>true</_SuppressWpfTrimError>-->
+    <RootNamespace>clipboard_tweak</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-class Q_col : Form
+class CB_Tweak_App : Form
 {
     const int MOD_ALT = 0x0001;
     const int MOD_CONTROL = 0x0002;
@@ -69,9 +69,9 @@ class Q_col : Form
     [STAThread]
     public static void Main(string[] args)
     {
-        System.Windows.Forms.Application.Run(new Q_col());
+        System.Windows.Forms.Application.Run(new CB_Tweak_App());
     }
-    public Q_col()
+    public CB_Tweak_App()
     {
         this.Visible = false;
         this.WindowState = FormWindowState.Minimized;
