@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "clipboard-tweak", "clipboard-tweak\clipboard-tweak.csproj", "{C36F7AC8-39B1-4185-BE4C-EF5CAC7969BD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clipboard-tweak", "clipboard-tweak\clipboard-tweak.csproj", "{35C59BD4-AF2F-45F5-9880-16CB6AF64E15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C36F7AC8-39B1-4185-BE4C-EF5CAC7969BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C36F7AC8-39B1-4185-BE4C-EF5CAC7969BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C36F7AC8-39B1-4185-BE4C-EF5CAC7969BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C36F7AC8-39B1-4185-BE4C-EF5CAC7969BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35C59BD4-AF2F-45F5-9880-16CB6AF64E15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35C59BD4-AF2F-45F5-9880-16CB6AF64E15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35C59BD4-AF2F-45F5-9880-16CB6AF64E15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35C59BD4-AF2F-45F5-9880-16CB6AF64E15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {1DBE40A8-ADE8-4427-950A-8A21DA98E4FE}
+		SolutionGuid = {E5AE076A-7F37-4B53-BD29-1EE9D74AD184}
 	EndGlobalSection
 EndGlobal
