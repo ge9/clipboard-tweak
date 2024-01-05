@@ -1,9 +1,11 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-
+using Timer = System.Threading.Timer;
 class CB_Tweak_App : Form
 {
     const int MOD_ALT = 0x0001;
@@ -38,8 +40,9 @@ class CB_Tweak_App : Form
     public const int KEYEVENTF_KEYUP = 0x0002;
 
     const int my_hotkey_id = 0x0010;//arbitrary value between 0x0000 and 0xbfff
-    (int, int, int, int)[] hotkey_ids = { (1, 2, 3 , 7), (4, 5, 6, 8) };
+    int[] hotkey_ids = { 1, 2, 3, 7, 4, 5, 6, 8 };
     const int my_hotkey_id_zot = 0x0012;//arbitrary value between 0x0000 and 0xbfff
+    const int my_hotkey_id_code = 0x0013;//arbitrary value between 0x0000 and 0xbfff
 
     //0: default status; do detecting
     //1: do nothing
@@ -60,10 +63,11 @@ class CB_Tweak_App : Form
     private System.Windows.Forms.IDataObject[] spare_cbs = { new DataObject(), new DataObject() };
     private bool window_init_done = false;
 
-    
+
     //use as multiset (bool is used like "unit" type)
     static Dictionary<string, bool> unsupported_formats = new Dictionary<string, bool>(){
-    {"Object Descriptor", true},
+        {"Object Descriptor", true},//Required in .NET Framework 4.x (tested 4.6.2)
+        {"EnhancedMetafile", true},//Required in .NET Framework 3.x (tested 3.5) & 4.x (tested 4.6.2)
     };
 
     [STAThread]
@@ -86,7 +90,7 @@ class CB_Tweak_App : Form
             MessageBox.Show("the hotkey is already in use");
         }
         /*
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item4, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.Z) == 0)
+        if (RegisterHotKey(this.Handle, hotkey_ids[4], MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.Z) == 0)
         {
             MessageBox.Show("the hotkey is already in use");
         }*/
@@ -94,15 +98,19 @@ class CB_Tweak_App : Form
         {
             MessageBox.Show("the hotkey is already in use");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item1, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.C) == 0)
+        if (RegisterHotKey(this.Handle, my_hotkey_id_code, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.I) == 0)
         {
             MessageBox.Show("the hotkey is already in use");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item2, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.X) == 0)
+        if (RegisterHotKey(this.Handle, hotkey_ids[1], MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.C) == 0)
         {
             MessageBox.Show("the hotkey is already in use");
         }
-        if (RegisterHotKey(this.Handle, hotkey_ids[0].Item3, MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.V) == 0)
+        if (RegisterHotKey(this.Handle, hotkey_ids[2], MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.X) == 0)
+        {
+            MessageBox.Show("the hotkey is already in use");
+        }
+        if (RegisterHotKey(this.Handle, hotkey_ids[3], MOD_ALT | MOD_SHIFT | MOD_CONTROL, (int)Keys.V) == 0)
         {
             MessageBox.Show("the hotkey is already in use");
         }
@@ -122,6 +130,7 @@ class CB_Tweak_App : Form
     protected override void WndProc(ref Message message)
     {
         base.WndProc(ref message);
+        Timer timer = null;
         switch (message.Msg)
         {
             case WM_SHOWWINDOW:
@@ -154,22 +163,22 @@ class CB_Tweak_App : Form
                 clip_detect = CBSTT_NOOP;
                 if (!clip_saved) { backupCBto(ref last_cb); Console.WriteLine("backup done!"); clip_saved = true; }
                 //メイン部分
-                if (((int)message.WParam) == hotkey_ids[0].Item1 || ((int)message.WParam) == hotkey_ids[0].Item2)
+                if (((int)message.WParam) == hotkey_ids[1] || ((int)message.WParam) == hotkey_ids[2])
                 {
                     ShowWindow(this.Handle, SW_SHOWNA);
                     clip_detect = CBSTT_NOOP;
-                    if (((int)message.WParam) == hotkey_ids[0].Item1) { SendKeys.SendWait("^c"); } else { SendKeys.SendWait("^x"); }
+                    if (((int)message.WParam) == hotkey_ids[1]) { SendKeys.SendWait("^c"); } else { SendKeys.SendWait("^x"); }
                     SendKeys.Flush();
                     Thread.Sleep(100);
                     backupCBto(ref spare_cbs[0]);
                     Console.WriteLine("copy done!");
-                    System.Threading.Tasks.Task.Delay(100).ContinueWith(
-                     _ => {
-                         clip_detect = CBSTT_RESTORE_LAST;
-                         PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
-                     });
+                    timer = new Timer(_ => {
+                        clip_detect = CBSTT_RESTORE_LAST;
+                        PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
+                        timer.Dispose();
+                    }, null, 100, Timeout.Infinite);
                 }
-                else if (((int)message.WParam) == hotkey_ids[0].Item3)
+                else if (((int)message.WParam) == hotkey_ids[3])
                 {
                     clip_detect = CBSTT_WAIT_SET_AND_CTRLV;
                     Clipboard.SetDataObject(spare_cbs[0], true);
@@ -197,13 +206,26 @@ class CB_Tweak_App : Form
                     SendKeys.SendWait("^c");
                     SendKeys.Flush();
                     Thread.Sleep(50);
-                    string img = Clipboard.GetText(TextDataFormat.UnicodeText);
-                    if (img != null)
+                    string text = Clipboard.GetText(TextDataFormat.UnicodeText);
+                    if (text != null)
                     {
                         ProcessStartInfo pInfo = new ProcessStartInfo();
                         pInfo.FileName = "zot.bat";
-                        pInfo.Arguments = img;
+                        pInfo.Arguments = text;
                         Process.Start(pInfo);
+                    }
+                    clip_detect = CBSTT_RESTORE_LAST;
+                    PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
+                }
+                else if (((int)message.WParam) == my_hotkey_id_code)
+                {
+                    SendKeys.SendWait("^c");
+                    SendKeys.Flush();
+                    Thread.Sleep(50);
+                    string text = Clipboard.GetText(TextDataFormat.UnicodeText);
+                    if (text != null)
+                    {
+                        SendText("`" + text);
                     }
                     clip_detect = CBSTT_RESTORE_LAST;
                     PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
@@ -215,21 +237,21 @@ class CB_Tweak_App : Form
                     case CBSTT_DEFAULT: clip_saved = false; break;
                     case CBSTT_WAIT_SET_AND_CTRLV:
                         clip_detect = CBSTT_NOOP;
-                        System.Threading.Tasks.Task.Delay(100).ContinueWith(
-                         _ => {
-                             clip_detect = CBSTT_CTRLV_RESTORE;
-                             PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
-                         });
+                        timer = new Timer(_ => {
+                            clip_detect = CBSTT_CTRLV_RESTORE;
+                            PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
+                            timer.Dispose();
+                        }, null, 100, Timeout.Infinite);
                         break;
                     case CBSTT_CTRLV_RESTORE:
                         clip_detect = CBSTT_NOOP;
                         SendKeys.SendWait("^v");
                         SendKeys.Flush();
-                        System.Threading.Tasks.Task.Delay(100).ContinueWith(
-                         _ => {
-                             clip_detect = CBSTT_RESTORE_LAST;
-                             PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
-                         });
+                        timer = new Timer(_ => {
+                            clip_detect = CBSTT_RESTORE_LAST;
+                            PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
+                            timer.Dispose();
+                        }, null, 100, Timeout.Infinite);
                         break;
                     case CBSTT_RESTORE_LAST:
                         clip_detect = CBSTT_FINALIZE;
@@ -239,11 +261,11 @@ class CB_Tweak_App : Form
                         break;
                     case CBSTT_FINALIZE:
                         clip_detect = CBSTT_NOOP;
-                        System.Threading.Tasks.Task.Delay(100).ContinueWith(
-                         _ => {
-                             ShowWindow(myHwnd, SW_HIDE);
-                             clip_detect = CBSTT_DEFAULT;
-                         });
+                        timer = new Timer(_ => {
+                            ShowWindow(myHwnd, SW_HIDE);
+                            clip_detect = CBSTT_DEFAULT;
+                            timer.Dispose();
+                        }, null, 100, Timeout.Infinite);
                         break;
                 }
                 break;
@@ -333,5 +355,73 @@ class CB_Tweak_App : Form
             Thread.Sleep(100);
         }
         return;
+    }
+
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct INPUT
+    {
+        public uint type;
+        public InputUnion u;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    struct InputUnion
+    {
+        [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern IntPtr GetMessageExtraInfo();
+    static void SendText(string text)
+    {
+        foreach (char c in text)
+        {
+            var inputs = new INPUT[2];
+            // Key Down
+            inputs[0].type = 1; // Keyboard input
+            inputs[0].u.ki.wScan = c;
+            inputs[0].u.ki.dwFlags = 0x0004; // KEYEVENTF_UNICODE
+
+            // Key Up
+            inputs[1].type = 1; // Keyboard input
+            inputs[1].u.ki.wScan = c;
+            inputs[1].u.ki.dwFlags = 0x0004 | 0x0002; // KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
+            Thread.Sleep(1);
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
     }
 }
