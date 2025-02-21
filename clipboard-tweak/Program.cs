@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Timer = System.Threading.Timer;
+using System.Text;
 class CB_Tweak_App : Form
 {
     const int MOD_ALT = 0x0001;
@@ -36,6 +37,100 @@ class CB_Tweak_App : Form
 
     [DllImport("user32.dll")]
     public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CreatePipe(out IntPtr hReadPipe, out IntPtr hWritePipe, IntPtr lpPipeAttributes, uint nSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool ReadFile(IntPtr hFile, byte[] lpBuffer, uint nNumberOfBytesToRead, out uint lpNumberOfBytesRead, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CreateProcess(
+        string lpApplicationName,
+        string lpCommandLine,
+        IntPtr lpProcessAttributes,
+        IntPtr lpThreadAttributes,
+        bool bInheritHandles,
+        uint dwCreationFlags,
+        IntPtr lpEnvironment,
+        string lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo,
+        out PROCESS_INFORMATION lpProcessInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct STARTUPINFO
+    {
+        public int cb;
+        public IntPtr lpReserved;
+        public IntPtr lpDesktop;
+        public IntPtr lpTitle;
+        public int dwX;
+        public int dwY;
+        public int dwXSize;
+        public int dwYSize;
+        public int dwXCountChars;
+        public int dwYCountChars;
+        public int dwFillAttribute;
+        public int dwFlags;
+        public short wShowWindow;
+        public short cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    public static string ExecuteCommand(string command)
+    {
+        IntPtr hRead, hWrite;
+        if (!CreatePipe(out hRead, out hWrite, IntPtr.Zero, 0))
+            throw new Exception("Failed to create pipe.");
+
+        const uint HANDLE_FLAG_INHERIT = 0x00000001;
+        SetHandleInformation(hWrite, HANDLE_FLAG_INHERIT, 1);
+
+        var si = new STARTUPINFO();
+        si.cb = Marshal.SizeOf(si);
+        si.dwFlags = 0x00000100; // STARTF_USESTDHANDLES
+        si.hStdOutput = hWrite;
+        si.hStdError = IntPtr.Zero;
+        si.hStdInput = IntPtr.Zero;
+
+        var pi = new PROCESS_INFORMATION();
+        if (!CreateProcess(null, command, IntPtr.Zero, IntPtr.Zero, true, 0, IntPtr.Zero, null, ref si, out pi))
+        {
+            CloseHandle(hWrite);
+            CloseHandle(hRead);
+            throw new Exception("CreateProcess failed.");
+        }
+        CloseHandle(hWrite);
+
+        var output = new StringBuilder();
+        var buffer = new byte[4096];
+        while (ReadFile(hRead, buffer, (uint)buffer.Length, out uint bytesRead, IntPtr.Zero) && bytesRead > 0)
+            output.Append(Encoding.Default.GetString(buffer, 0, (int)bytesRead));
+        CloseHandle(hRead);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+
+        return output.ToString();
+    }
+
 
     public const int KEYEVENTF_KEYUP = 0x0002;
 
@@ -225,7 +320,7 @@ class CB_Tweak_App : Form
                     string text = Clipboard.GetText(TextDataFormat.UnicodeText);
                     if (text != null)
                     {
-                        SendText("`" + text);
+                        SendText(ExecuteCommand("clipboard-tweak-modify " + text));
                     }
                     clip_detect = CBSTT_RESTORE_LAST;
                     PostMessage((int)myHwnd, WM_CLIPBOARDUPDATE, 0, 0);
