@@ -1,17 +1,16 @@
-起動中、Ctrl+Alt+Shift+[何かのキー]を押すと、選択されたコンテンツに関して以下の操作を行う。
-- Cを押したとき
-  - 選択されたコンテンツをソフトウェア内部のスペアのクリップボードに格納する。コピーに時間がかかる場合があるため、完了まで画面中央にウインドウが表示される。
-- Xを押したとき
-  - Cの場合と同じだが、選択されたコンテンツが切りとられる（Ctrl+Cに対するCtrl+Xと同じ）
-- Vを押したとき
-  - スペアのクリップボードの内容を貼り付ける。
-- Yを押したとき
-  - 選択された文字列の全ての文字を、それぞれUnicodeで+0x60000したものに変える。例えば0x20（半角スペース）であれば0x60020になる。例外的に、U+Exxxxの文字については0x10000を足す。
-  - 選択された文字列に既にU+6xxxxやU+Fxxxxなどの文字が含まれていれば、逆向きの変換を行う。
-  - これを https://github.com/ge9/trivial-font と併用することにより、表示幅を大きく減らした状態でテキストデータを保持することができ、疑似的な折りたたみ機能が実現できる。
-- Pを押したとき
-  - 選択文字列を引数としてzot.bat（exeのカレントディレクトリから見えるパスにある必要がある）を起動する。該当引用キーの論文をZoteroで開くことを想定。
+# clipboard-tweak
 
-# 動作要件
-`-x86`と`-x64`は.NET 6向けにビルドされていて、ランタイムのインストールが必要。
-`-dotnet462`と`-dotnet35`は古い.NET Framework（それぞれ4.6.2と3.5）向けにビルドされている。前者はWindows10以降や更新を適用しているWindows8/8.1ならランタイムを入れなくても動作するはず。後者はWindows7でもデフォルトで動作するはずだが、コピー/ペースト操作でフォントが維持されない場合があるなどの不具合が確認されている。
+This software conceptually provides a "spare" clipboard to enhance Windows clipboard.
+It behaves as follows according to the key pressed together with Ctrl+Alt+Shift. 
+- C
+  - Stores the selected content into the spare clipboard. A blank window is shown as indication during clipboard operation.
+- X
+  - Like the "C" case, but the selected content is cut (corresponding to Ctrl+X).
+- V
+  - The spare clipboard is pasted.
+
+# Dependencies
+There are some release versions
+- `clipboard-tweak-net-framework` is compiled with .NET Framework 4.6.2, whose runtime is pre-installed to Windows 10/11 and regularly updated Windows8/8.1.  This is **recommended**.
+  - This software can be compiled with .NET Framework 3.5, whose runtime is pre-installed in Windows 7, but some defects are confirmed (e.g. unable to preserve font information between copy/paste in some cases)
+- `clipboard-tweak` is compiled with newer .NET (not .NET Framework), requiring runtime installation.
